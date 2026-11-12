@@ -90,10 +90,16 @@ final class AppModel: ObservableObject {
         reconcileSoon(force: true)
     }
 
+    /// Whether quitting has to hand the light back first. After an uninstall the helper is gone,
+    /// so there's nothing to release.
+    var needsLightRelease: Bool {
+        !uninstalled && hardwareSupported != false && helper.state == .enabled
+    }
+
     /// Called on quit: hand the light back to macOS.
     func releaseLight() async {
         timer?.invalidate()
-        guard !uninstalled, hardwareSupported != false, helper.state == .enabled else { return }
+        guard needsLightRelease else { return }
         try? await helper.setLight(LightTarget.system.smcValue)
     }
 

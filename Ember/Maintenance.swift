@@ -74,12 +74,12 @@ enum Maintenance {
     }
 
     /// Asks first, then hands the light back, removes the helper and login item, forgets settings,
-    /// shows Ember in Finder so it can be binned, and quits.
+    /// moves Ember to the Bin (or shows it in Finder if it can't), and quits.
     static func uninstall(model: AppModel) {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.messageText = "Uninstall Ember?"
-        alert.informativeText = "Ember will hand the light back to macOS, remove its helper, stop opening at login and forget its settings. Then drag Ember from Applications to the Bin."
+        alert.informativeText = "Ember will hand the light back to macOS, remove its helper, stop opening at login, forget its settings and move itself to the Bin."
         alert.addButton(withTitle: "Uninstall")
         alert.addButton(withTitle: "Cancel")
         alert.alertStyle = .warning
@@ -90,8 +90,16 @@ enum Maintenance {
             if let id = Bundle.main.bundleIdentifier {
                 UserDefaults.standard.removePersistentDomain(forName: id)
             }
-            NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
-            NSApp.terminate(nil)
+            let bundle = Bundle.main.bundleURL
+            do {
+                _ = try await NSWorkspace.shared.recycle([bundle])
+            } catch {
+                NSWorkspace.shared.activateFileViewerSelecting([bundle])
+            }
+            // Quit from the run loop, not from inside this task. terminate(_:) spins a nested run
+            // loop on the main thread, and calling it from a main-actor task blocks the main queue,
+            // so nothing queued there (like the quit reply) could ever run.
+            NSApp.perform(#selector(NSApplication.terminate(_:)), with: nil, afterDelay: 0)
         }
     }
 

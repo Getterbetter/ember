@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Hand the light back to macOS before quitting, so it never stays stuck off.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        let needsRelease = MainActor.assumeIsolated { AppModel.shared.needsLightRelease }
+        guard needsRelease else { return .terminateNow }
         Task { @MainActor in
             // Whichever finishes first: the release, or a 2 s deadline.
             await withTaskGroup(of: Void.self) { group in
