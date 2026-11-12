@@ -121,7 +121,8 @@ spctl --assess --type execute --verbose=2 "$APP"
 
 echo "== Final zip (with the stapled ticket)"
 ditto -c -k --keepParent "$APP" "$ZIP"
-shasum -a 256 "$ZIP" | tee "$ZIP.sha256"
+# Name the zip without its folder so `shasum -c` works next to a downloaded copy.
+(cd "$OUT" && shasum -a 256 "$(basename "$ZIP")") | tee "$ZIP.sha256"
 
 if [ "$PUBLISH" = 1 ]; then
   echo "== Publish v$VERSION on GitHub"
