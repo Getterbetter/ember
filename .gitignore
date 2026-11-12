@@ -1,0 +1,8 @@
+Ember.xcodeproj/
+build/
+DerivedData/
+Config/Local.xcconfig
+.DS_Store
+*.xcuserstate
+xcuserdata/
+.claude/settings.local.json

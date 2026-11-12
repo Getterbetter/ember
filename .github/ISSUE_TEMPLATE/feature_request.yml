@@ -1,0 +1,11 @@
+name: Idea
+description: Suggest something Ember could do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: What you want to happen, and why it matters to you.
+    validations:
+      required: true

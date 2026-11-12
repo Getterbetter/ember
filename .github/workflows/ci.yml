@@ -1,0 +1,65 @@
+name: CI
+
+# Unsigned build + EmberKit unit tests on a GitHub macOS runner.
+# Signed and notarised builds are made on a Mac with scripts/release.sh.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-and-test:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Pick the newest Xcode
+        run: |
+          XCODE="$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Generate the project
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP/xcodegen"
+          "$RUNNER_TEMP/xcodegen/xcodegen/bin/xcodegen" generate
+
+      - name: Unit tests
+        run: |
+          xcodebuild -project Ember.xcodeproj -scheme Ember -destination 'platform=macOS' \
+            -derivedDataPath build/DerivedData -quiet \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" test
+
+      - name: Build the app (unsigned)
+        run: |
+          xcodebuild -project Ember.xcodeproj -scheme Ember -configuration Release \
+            -derivedDataPath build/DerivedData -quiet \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" build
+
+      - name: Check the bundle
+        run: |
+          APP=build/DerivedData/Build/Products/Release/Ember.app
+          test -x "$APP/Contents/MacOS/Ember"
+          test -x "$APP/Contents/MacOS/EmberHelper"
+          PLIST="$(ls "$APP"/Contents/Library/LaunchDaemons/*.ember.helper.plist)"
+          plutil -lint "$PLIST"
+          plutil -p "$PLIST"
+          test -d "$APP/Contents/Frameworks/EmberKit.framework"
+          test -d "$APP/Contents/Resources/Metadata.appintents"
+          echo "Bundle OK"

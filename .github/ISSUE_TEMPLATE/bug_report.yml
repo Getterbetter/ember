@@ -1,0 +1,31 @@
+name: Bug report
+description: Something isn't working
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what the light actually did.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Ember version
+      description: Ember menu › ⋯ shows it at the bottom.
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model and macOS version
+      placeholder: MacBook Pro 14" M6, macOS 27.2
+    validations:
+      required: true
+  - type: textarea
+    id: probe
+    attributes:
+      label: Probe output (optional)
+      description: "If the light never changes, run `swift scripts/smc-probe.swift` from a clone and paste the output. It only reads."
+      render: text

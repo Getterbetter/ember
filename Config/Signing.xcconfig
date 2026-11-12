@@ -1,0 +1,5 @@
+// Shared signing settings. Your team ID lives in Config/Local.xcconfig (gitignored),
+// which scripts/build.sh writes for you.
+EMBER_BUNDLE_PREFIX = TME
+DEVELOPMENT_TEAM =
+#include? "Local.xcconfig"
