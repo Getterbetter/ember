@@ -47,8 +47,8 @@ you can find the cable in the dark.
 
 ## Install
 
-1. Download `Ember-x.y.z.zip` from [Releases](https://github.com/Getterbetter/ember/releases/latest),
-   unzip it, and drag **Ember** into **Applications**.
+1. Download `Ember-x.y.z.dmg` from [Releases](https://github.com/Getterbetter/ember/releases/latest),
+   open it, and drag **Ember** onto the **Applications** shortcut. (A zip is there too if you prefer.)
 2. Open it. It's signed and notarised by Apple, so it opens normally.
 
 Requires an Apple Silicon MacBook with a MagSafe 3 port and macOS 26 or later.

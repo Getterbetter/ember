@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build a Developer ID signed, notarised Ember release and (optionally) publish it on GitHub.
 #
-#   scripts/release.sh              build, sign, notarise, staple, zip  -> build/release/
+#   scripts/release.sh              build, sign, notarise, staple, zip + dmg  -> build/release/
 #   scripts/release.sh --publish    ...then create the GitHub release vX.Y.Z with the zip
 #   scripts/release.sh --sign-only  build and sign, check signatures, stop before notarising
 #
@@ -121,11 +121,56 @@ spctl --assess --type execute --verbose=2 "$APP"
 
 echo "== Final zip (with the stapled ticket)"
 ditto -c -k --keepParent "$APP" "$ZIP"
-shasum -a 256 "$ZIP" | tee "$ZIP.sha256"
+
+echo "== Disk image: Ember next to an Applications shortcut, so installing is one drag"
+DMG="$OUT/Ember-$VERSION.dmg"
+STAGE="$OUT/dmg-stage"
+RW="$OUT/Ember-rw.dmg"
+[ -d "$STAGE" ] && mv "$STAGE" "$HOME/.Trash/Ember-dmg-stage-$(date +%s)"
+for f in "$DMG" "$RW"; do [ -f "$f" ] && mv "$f" "$HOME/.Trash/$(basename "$f" .dmg)-$(date +%s).dmg"; done
+mkdir -p "$STAGE"
+ditto "$APP" "$STAGE/Ember.app"
+ln -s /Applications "$STAGE/Applications"
+hdiutil create -quiet -volname "Ember" -srcfolder "$STAGE" -fs HFS+ -format UDRW -ov "$RW"
+MOUNT="$(hdiutil attach -readwrite -noverify -noautoopen "$RW" | awk -F'\t' '/\/Volumes\//{print $NF}')"
+# Lay the window out: big icons, Ember on the left, Applications on the right. Best effort:
+# it needs Finder automation permission, and the image works without it.
+osascript <<OSA || echo "(Finder layout skipped; the disk image still works)"
+tell application "Finder"
+  tell disk "$(basename "$MOUNT")"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set the bounds of container window to {200, 120, 740, 440}
+    set opts to the icon view options of container window
+    set arrangement of opts to not arranged
+    set icon size of opts to 128
+    set position of item "Ember.app" of container window to {140, 150}
+    set position of item "Applications" of container window to {400, 150}
+    update without registering applications
+    delay 1
+    close
+  end tell
+end tell
+OSA
+sync
+hdiutil detach -quiet "$MOUNT"
+hdiutil convert -quiet "$RW" -format UDZO -imagekey zlib-level=9 -o "$DMG"
+mv "$RW" "$HOME/.Trash/Ember-rw-$(date +%s).dmg"
+if [ "$MODE" = local ]; then
+  codesign --sign "Developer ID Application" --timestamp "$DMG"
+fi
+xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
+xcrun stapler staple "$DMG"
+xcrun stapler validate "$DMG"
+
+# Name the files without their folder so `shasum -c` works next to a downloaded copy.
+(cd "$OUT" && shasum -a 256 "$(basename "$DMG")" "$(basename "$ZIP")") | tee "$OUT/Ember-$VERSION.sha256"
 
 if [ "$PUBLISH" = 1 ]; then
   echo "== Publish v$VERSION on GitHub"
   NOTES="$(awk -v v="$VERSION" '$0 ~ "^## \\[?"v {f=1; next} /^## / && f {exit} f' CHANGELOG.md)"
-  "$GH" release create "v$VERSION" "$ZIP" "$ZIP.sha256" --title "Ember $VERSION" --notes "$NOTES" --target "$(git rev-parse HEAD)"
+  "$GH" release create "v$VERSION" "$DMG" "$ZIP" "$OUT/Ember-$VERSION.sha256" --title "Ember $VERSION" --notes "$NOTES" --target "$(git rev-parse HEAD)"
 fi
-echo "Done: $ZIP"
+echo "Done: $DMG and $ZIP"
