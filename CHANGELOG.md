@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Opened from Downloads, Ember now asks to be moved to Applications first. Run from there,
+  macOS can't start its helper ("the helper didn't answer in time").
+- Uninstall now finishes: Ember quits and moves itself to the Bin. Before, it removed the
+  helper and login item but then hung on quit.
+- The release checksum file names just the zip, so `shasum -c` works next to a download.
+
 ## 1.0.0
 
 First public release.
