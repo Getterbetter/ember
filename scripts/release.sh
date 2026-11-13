@@ -131,9 +131,14 @@ for f in "$DMG" "$RW"; do [ -f "$f" ] && mv "$f" "$HOME/.Trash/$(basename "$f" .
 mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/Ember.app"
 ln -s /Applications "$STAGE/Applications"
+# Background with the arrow (scripts/make-dmg-background.py); 1x and 2x in one TIFF for Retina.
+mkdir -p "$STAGE/.background"
+tiffutil -cathidpicheck scripts/dmg/background.png scripts/dmg/background@2x.png \
+  -out "$STAGE/.background/background.tiff" >/dev/null
 hdiutil create -quiet -volname "Ember" -srcfolder "$STAGE" -fs HFS+ -format UDRW -ov "$RW"
 MOUNT="$(hdiutil attach -readwrite -noverify -noautoopen "$RW" | awk -F'\t' '/\/Volumes\//{print $NF}')"
-# Lay the window out: big icons, Ember on the left, Applications on the right. Best effort:
+# Lay the window out: big icons, Ember on the left, Applications on the right, the arrow
+# between them. Best effort:
 # it needs Finder automation permission, and the image works without it.
 osascript <<OSA || echo "(Finder layout skipped; the disk image still works)"
 tell application "Finder"
@@ -142,10 +147,13 @@ tell application "Finder"
     set current view of container window to icon view
     set toolbar visible of container window to false
     set statusbar visible of container window to false
-    set the bounds of container window to {200, 120, 740, 440}
+    -- 540 x 320 of window content, plus the title bar.
+    set the bounds of container window to {200, 120, 740, 468}
     set opts to the icon view options of container window
     set arrangement of opts to not arranged
     set icon size of opts to 128
+    set text size of opts to 13
+    set background picture of opts to file ".background:background.tiff"
     set position of item "Ember.app" of container window to {140, 150}
     set position of item "Applications" of container window to {400, 150}
     update without registering applications
