@@ -47,6 +47,20 @@ public enum Personality {
                 "Battery's at \(percent)%. Ignoring the dark until we're past \(threshold)%.",
                 "Low battery. Rules are suspended, glowing until \(threshold)%.",
             ], seed)
+        case .shortcut(let target):
+            switch target {
+            case .off:
+                return pick([
+                    "A Shortcut asked for lights out. I don't ask questions.",
+                    "Off, by Shortcut. Somebody's automating.",
+                ], seed)
+            case .green:
+                return pick(["Green, as ordered.", "A Shortcut said green. Green it is."], seed)
+            case .amber:
+                return pick(["Amber, by request. Campfire hours.", "A Shortcut picked amber. Cosy."], seed)
+            case .system:
+                return pick(["Back to normal, as ordered."], seed)
+            }
         case .alwaysOff:
             return pick([
                 "Lights out, for good. I'll be in here if you need me.",
@@ -113,6 +127,7 @@ public enum Personality {
         let why: String
         switch decision.reason {
         case .lowBattery: why = "low battery"
+        case .shortcut: why = "Shortcut"
         case .alwaysOff: why = "always off"
         case .alwaysOn: why = "always on"
         case .snoozed: why = "snoozed"

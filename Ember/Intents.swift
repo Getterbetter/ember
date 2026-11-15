@@ -101,6 +101,74 @@ struct SetEmberModeIntent: AppIntent {
     }
 }
 
+/// The choices in the "Set MagSafe Light" action. The hardware only has green and amber.
+enum MagSafeLightOption: String, AppEnum {
+    case green
+    case amber
+    case off
+    case normal
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "MagSafe Light"
+    static var caseDisplayRepresentations: [MagSafeLightOption: DisplayRepresentation] = [
+        .green: "Green",
+        .amber: "Amber",
+        .off: "Off",
+        .normal: DisplayRepresentation(title: "Normal", subtitle: "Hand the light back to Ember and macOS"),
+    ]
+
+    var light: ShortcutLight {
+        switch self {
+        case .green: return .green
+        case .amber: return .amber
+        case .off: return .off
+        case .normal: return .normal
+        }
+    }
+}
+
+/// Holds the light at a colour until something newer says otherwise: this action again, a mode
+/// change, a snooze, or a Focus with Ember's filter starting or ending. Uses the same policy and
+/// re-apply loop as the Focus filter, so macOS can't quietly reset it after sleep or plug-in.
+struct SetMagSafeLightIntent: AppIntent {
+    static var title: LocalizedStringResource = "Set MagSafe Light"
+    static var description: IntentDescription? = IntentDescription(
+        "Make the MagSafe light green, amber or off until you change it, or hand it back with Normal."
+    )
+
+    @Parameter(title: "Light", default: .green)
+    var light: MagSafeLightOption
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Set MagSafe light to \(\.$light)")
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        AppModel.shared.start()
+        let decision = AppModel.shared.setShortcutLight(light.light)
+        if case .lowBattery(_, let threshold) = decision.reason, light != .normal {
+            return .result(dialog: "Battery's low, so I'll show it charging until it's past \(threshold)%. Then \(light.spoken).")
+        }
+        switch light {
+        case .green: return .result(dialog: "MagSafe light green.")
+        case .amber: return .result(dialog: "MagSafe light amber.")
+        case .off: return .result(dialog: "MagSafe light off.")
+        case .normal: return .result(dialog: "MagSafe light back to normal.")
+        }
+    }
+}
+
+private extension MagSafeLightOption {
+    var spoken: String {
+        switch self {
+        case .green: return "green"
+        case .amber: return "amber"
+        case .off: return "off"
+        case .normal: return "normal"
+        }
+    }
+}
+
 struct SnoozeLightIntent: AppIntent {
     static var title: LocalizedStringResource = "Turn Off MagSafe Light For a While"
     static var description: IntentDescription? = IntentDescription("Turn the MagSafe light off for a number of minutes.")
@@ -130,6 +198,16 @@ struct WaveIntent: AppIntent {
 
 struct EmberShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: SetMagSafeLightIntent(),
+            phrases: [
+                "Set the MagSafe light with \(.applicationName)",
+                "Set the MagSafe light to \(\.$light) with \(.applicationName)",
+                "Make the MagSafe light \(\.$light) with \(.applicationName)",
+            ],
+            shortTitle: "Set MagSafe Light",
+            systemImageName: "light.beacon.max"
+        )
         AppShortcut(
             intent: SetEmberModeIntent(),
             phrases: ["Set \(.applicationName) mode", "Change the MagSafe light in \(.applicationName)"],

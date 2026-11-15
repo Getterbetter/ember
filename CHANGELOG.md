@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- New Shortcuts and Siri action, **Set MagSafe Light**: Green, Amber, Off or Normal, from any
+  automation. The colour holds (and survives sleep and plug-in) until you run it again, pick a
+  mode, snooze, or a Focus with Ember's filter starts or ends. Normal hands the light back. The
+  menu shows the held colour with a Clear button. ([#4](https://github.com/Getterbetter/ember/issues/4))
+
 ## 1.0.1
 
 - Download Ember as a disk image: open it and drag Ember onto Applications.

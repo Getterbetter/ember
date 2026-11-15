@@ -6,6 +6,8 @@ public struct PolicyInputs: Sendable {
     public var mode: LightMode
     public var focus: FocusLightChoice
     public var snooze: Snooze?
+    /// A colour held by the "Set MagSafe Light" Shortcuts action.
+    public var heldLight: LightTarget?
     public var schedule: LightsOutSchedule
     /// Battery percent below which the light always shows. `nil` turns the guard off.
     public var lowBatteryThreshold: Int?
@@ -17,6 +19,7 @@ public struct PolicyInputs: Sendable {
         mode: LightMode,
         focus: FocusLightChoice = .followEmber,
         snooze: Snooze? = nil,
+        heldLight: LightTarget? = nil,
         schedule: LightsOutSchedule = LightsOutSchedule(),
         lowBatteryThreshold: Int? = 20,
         battery: BatterySnapshot? = nil,
@@ -26,6 +29,7 @@ public struct PolicyInputs: Sendable {
         self.mode = mode
         self.focus = focus
         self.snooze = snooze
+        self.heldLight = heldLight
         self.schedule = schedule
         self.lowBatteryThreshold = lowBatteryThreshold
         self.battery = battery
@@ -35,6 +39,7 @@ public struct PolicyInputs: Sendable {
 
 public enum DecisionReason: Equatable, Sendable {
     case lowBattery(percent: Int, threshold: Int)
+    case shortcut(LightTarget)
     case alwaysOff
     case alwaysOn
     case snoozed(until: Date)
@@ -56,16 +61,22 @@ public struct Decision: Equatable, Sendable {
 public enum Policy {
     /// Picks the light state. Precedence, highest first:
     /// 1. Low-battery guard (plugged in and below the threshold): macOS shows the light.
-    /// 2. Always off.
-    /// 3. An active snooze (it beats Always on, because it's explicit and temporary).
-    /// 4. Always on.
-    /// 5. Auto: a Focus filter's choice, then the lights-out schedule, then normal.
+    /// 2. A colour held by the "Set MagSafe Light" Shortcuts action. It's the newest explicit
+    ///    instruction (anything newer clears it, see `EmberSettings`), so it beats the modes.
+    /// 3. Always off.
+    /// 4. An active snooze (it beats Always on, because it's explicit and temporary).
+    /// 5. Always on.
+    /// 6. Auto: a Focus filter's choice, then the lights-out schedule, then normal.
     public static func decide(_ input: PolicyInputs) -> Decision {
         if let threshold = input.lowBatteryThreshold,
            let battery = input.battery,
            battery.isPluggedIn,
            battery.percent < threshold {
             return Decision(target: .system, reason: .lowBattery(percent: battery.percent, threshold: threshold))
+        }
+
+        if let held = input.heldLight, held != .system {
+            return Decision(target: held, reason: .shortcut(held))
         }
 
         if input.mode == .alwaysOff {

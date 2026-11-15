@@ -10,6 +10,7 @@ struct MenuContentView: View {
             header
             Divider()
             modePicker
+            shortcutLightRow
             snoozeRow
             Divider()
             toggles
@@ -81,6 +82,29 @@ struct MenuContentView: View {
         case .auto: return "Follows your Focus filters, snoozes and schedule."
         case .alwaysOff: return "Off, full stop (low-battery guard still applies)."
         case .alwaysOn: return "macOS's normal amber and green, whatever Focus says."
+        }
+    }
+
+    /// Shown while a colour from the "Set MagSafe Light" Shortcuts action is held.
+    @ViewBuilder
+    private var shortcutLightRow: some View {
+        if let held = model.settings.heldLight, held != .system {
+            HStack {
+                Label(heldLightTitle(held), systemImage: "wand.and.stars")
+                    .font(.callout)
+                Spacer()
+                Button("Clear") { model.setShortcutLight(.normal) }
+                    .help("Hand the light back to Ember's usual rules")
+            }
+            .controlSize(.small)
+        }
+    }
+
+    private func heldLightTitle(_ target: LightTarget) -> String {
+        switch target {
+        case .green: return "Green, set by Shortcut"
+        case .amber: return "Amber, set by Shortcut"
+        case .off, .system: return "Off, set by Shortcut"
         }
     }
 

@@ -70,6 +70,25 @@ public enum FocusLightChoice: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// What the "Set MagSafe Light" Shortcuts action asks for. A colour is held until something
+/// newer tells Ember otherwise; `.normal` drops it and hands the light back to Ember's rules.
+public enum ShortcutLight: String, Codable, CaseIterable, Sendable {
+    case green
+    case amber
+    case off
+    case normal
+
+    /// The light to hold, or `nil` to stop holding one.
+    public var heldTarget: LightTarget? {
+        switch self {
+        case .green: return .green
+        case .amber: return .amber
+        case .off: return .off
+        case .normal: return nil
+        }
+    }
+}
+
 /// A temporary override, e.g. "off for an hour".
 public struct Snooze: Codable, Equatable, Sendable {
     public var target: LightTarget
