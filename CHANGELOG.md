@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.2
 
 - New Shortcuts action, **Set MagSafe Light**: Green, Amber, Off or Normal, from any
   automation. The colour holds (and survives sleep and plug-in) until you run it again, pick a
