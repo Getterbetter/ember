@@ -43,11 +43,10 @@ you can find the cable in the dark.
   it's charging.
 - **Self-healing.** macOS resets the light when you plug in, sleep or wake. Ember puts it back.
 - **Safe exit.** Quit, crash or uninstall, and the light goes back to normal.
-- **Shortcuts and Siri.** Four actions, so any automation can drive the light:
+- **Shortcuts.** Four actions, so any automation can drive the light:
   - **Set MagSafe Light**: Green, Amber, Off, or Normal. The colour stays until you change it, pick a
     mode, snooze, or a Focus with Ember's filter starts or ends. Normal hands the light back to
-    Ember's usual rules. (The light itself only does green and amber.) With Siri, say "Set Ember to
-    amber": a phrase with "light" in it goes to your HomeKit lights instead.
+    Ember's usual rules. (The light itself only does green and amber.)
   - **Set MagSafe Light Mode**: Auto, Always off or Always on.
   - **Turn Off MagSafe Light For a While**: off for a number of minutes.
   - **Wave the MagSafe Light**: blink it so you can find the cable.
@@ -94,7 +93,7 @@ touches charge limits.
 
 **Can it show other colours?**
 No. The light has a green and an amber LED and nothing else, so green, amber and off are all any
-app can do. Use the Set MagSafe Light action to pick one from Shortcuts, Siri or an automation.
+app can do. Use the Set MagSafe Light action to pick one from Shortcuts or an automation.
 
 **Intel Macs or older MagSafe?**
 No. Ember needs an Apple Silicon MacBook with MagSafe 3.
