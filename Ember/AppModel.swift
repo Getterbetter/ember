@@ -136,18 +136,29 @@ final class AppModel: ObservableObject {
     // MARK: Actions from the menu, Shortcuts and Focus
 
     func setMode(_ mode: LightMode) {
-        settings.mode = mode
+        settings.setMode(mode)
         bumpLine()
     }
 
     func snooze(minutes: Int) {
-        settings.snooze = Snooze(target: .off, until: Date().addingTimeInterval(TimeInterval(minutes * 60)))
+        settings.startSnooze(Snooze(target: .off, until: Date().addingTimeInterval(TimeInterval(minutes * 60))))
         bumpLine()
     }
 
     func snoozeUntilMorning() {
-        settings.snooze = Snooze(target: .off, until: SnoozeMath.morning(after: Date(), schedule: settings.schedule, calendar: .current))
+        settings.startSnooze(Snooze(target: .off, until: SnoozeMath.morning(after: Date(), schedule: settings.schedule, calendar: .current)))
         bumpLine()
+    }
+
+    /// The "Set MagSafe Light" Shortcuts action, and the menu's Clear button (`.normal`).
+    /// Returns what the light will do, so the action can say so.
+    @discardableResult
+    func setShortcutLight(_ light: ShortcutLight) -> Decision {
+        log.info("shortcut says \(light.rawValue, privacy: .public)")
+        settings.setShortcutLight(light)
+        bumpLine()
+        reconcileSoon(force: true)
+        return Policy.decide(settings.policyInputs(now: Date(), focus: focus, battery: PowerMonitor.snapshot()))
     }
 
     func cancelSnooze() {
@@ -157,6 +168,9 @@ final class AppModel: ObservableObject {
 
     func applyFocus(_ choice: FocusLightChoice) {
         log.info("focus filter says \(choice.rawValue, privacy: .public)")
+        // A Focus starting or ending is newer than a Shortcut colour, so it takes over. macOS can
+        // deliver the same choice again (on relaunch, say); that changes nothing and keeps it.
+        if choice != focus { settings.focusChanged() }
         focus = choice
         store.saveFocus(choice)
         if choice != .followEmber { markFocusSetupDone() }

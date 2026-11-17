@@ -22,12 +22,13 @@ struct PolicyTests {
         mode: LightMode = .auto,
         focus: FocusLightChoice = .followEmber,
         snooze: Snooze? = nil,
+        held: LightTarget? = nil,
         schedule: LightsOutSchedule = LightsOutSchedule(),
         threshold: Int? = 20,
         battery: BatterySnapshot? = pluggedFull
     ) -> Decision {
         Policy.decide(PolicyInputs(
-            now: now, mode: mode, focus: focus, snooze: snooze, schedule: schedule,
+            now: now, mode: mode, focus: focus, snooze: snooze, heldLight: held, schedule: schedule,
             lowBatteryThreshold: threshold, battery: battery, calendar: melbourne
         ))
     }
@@ -94,6 +95,30 @@ struct PolicyTests {
     @Test func focusChoiceBeatsSchedule() {
         let schedule = LightsOutSchedule(isEnabled: true)
         #expect(decide(now: at(23), focus: .green, schedule: schedule).target == .green)
+    }
+
+    @Test func shortcutLightHoldsItsColour() {
+        #expect(decide(held: .green) == Decision(target: .green, reason: .shortcut(.green)))
+        #expect(decide(held: .amber) == Decision(target: .amber, reason: .shortcut(.amber)))
+        #expect(decide(held: .off) == Decision(target: .off, reason: .shortcut(.off)))
+    }
+
+    @Test func shortcutLightBeatsModesFocusSnoozeAndSchedule() {
+        let schedule = LightsOutSchedule(isEnabled: true, startMinutes: 22 * 60, endMinutes: 7 * 60)
+        #expect(decide(mode: .alwaysOff, held: .green).target == .green)
+        #expect(decide(mode: .alwaysOn, held: .off).target == .off)
+        #expect(decide(focus: .off, held: .amber).target == .amber)
+        #expect(decide(snooze: Snooze(target: .off, until: at(15)), held: .green).target == .green)
+        #expect(decide(now: at(23), held: .amber, schedule: schedule).target == .amber)
+    }
+
+    @Test func lowBatteryGuardBeatsShortcutLight() {
+        let low = BatterySnapshot(percent: 12, isPluggedIn: true, isCharging: true)
+        #expect(decide(held: .off, battery: low) == Decision(target: .system, reason: .lowBattery(percent: 12, threshold: 20)))
+    }
+
+    @Test func heldSystemLightIsIgnored() {
+        #expect(decide(focus: .off, held: .system) == Decision(target: .off, reason: .focus(.off)))
     }
 
     @Test func disabledScheduleDoesNothing() {

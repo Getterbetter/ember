@@ -9,6 +9,7 @@ struct PersonalityTests {
         .snoozed(until: Date(timeIntervalSince1970: 0)),
         .focus(.off), .focus(.normal), .focus(.green), .focus(.amber),
         .schedule(until: Date(timeIntervalSince1970: 0)), .normal,
+        .shortcut(.off), .shortcut(.green), .shortcut(.amber), .shortcut(.system),
     ]
 
     @Test func everyStateHasALine() {
@@ -53,6 +54,12 @@ struct PersonalityTests {
 
     @Test func statusChip() {
         #expect(Personality.status(for: Decision(target: .off, reason: .focus(.off))) == "Light off · Focus")
+        #expect(Personality.status(for: Decision(target: .green, reason: .shortcut(.green))) == "Light green · Shortcut")
+    }
+
+    @Test func shortcutOffSleeps() {
+        #expect(Personality.mood(for: Decision(target: .off, reason: .shortcut(.off))) == .asleep)
+        #expect(Personality.mood(for: Decision(target: .amber, reason: .shortcut(.amber))) == .awake)
     }
 }
 
@@ -86,6 +93,59 @@ struct SettingsTests {
         #expect(store.loadFocus() == .followEmber)
         store.saveFocus(.off)
         #expect(store.loadFocus() == .off)
+    }
+
+    @Test func shortcutLightRoundTripsAndOldSettingsHaveNone() throws {
+        let defaults = try #require(UserDefaults(suiteName: "ember.tests.\(UUID().uuidString)"))
+        let store = SettingsStore(defaults: defaults)
+        var s = EmberSettings()
+        s.setShortcutLight(.amber)
+        store.save(s)
+        #expect(store.loadSettings().heldLight == .amber)
+
+        let old = try JSONDecoder().decode(EmberSettings.self, from: #"{"mode":"auto"}"#.data(using: .utf8)!)
+        #expect(old.heldLight == nil)
+    }
+
+    @Test func shortcutLightOptionsMapToTargets() {
+        #expect(ShortcutLight.green.heldTarget == .green)
+        #expect(ShortcutLight.amber.heldTarget == .amber)
+        #expect(ShortcutLight.off.heldTarget == .off)
+        #expect(ShortcutLight.normal.heldTarget == nil)
+    }
+
+    @Test func settingAShortcutColourEndsASnooze() {
+        var s = EmberSettings(snooze: Snooze(until: Date().addingTimeInterval(3600)))
+        s.setShortcutLight(.green)
+        #expect(s.heldLight == .green)
+        #expect(s.snooze == nil)
+        #expect(s.policyInputs(now: Date(), focus: .followEmber, battery: nil).heldLight == .green)
+    }
+
+    @Test func normalLetsGoAndLeavesTheRestAlone() {
+        let snooze = Snooze(until: Date().addingTimeInterval(3600))
+        var s = EmberSettings(mode: .alwaysOff, snooze: snooze, heldLight: .amber)
+        s.setShortcutLight(.normal)
+        #expect(s.heldLight == nil)
+        #expect(s.mode == .alwaysOff)
+        #expect(s.snooze == snooze)
+    }
+
+    @Test func newerInstructionsClearTheShortcutColour() {
+        var s = EmberSettings(heldLight: .green)
+        s.setMode(.alwaysOn)
+        #expect(s.heldLight == nil)
+        #expect(s.mode == .alwaysOn)
+
+        s = EmberSettings(heldLight: .green)
+        let snooze = Snooze(until: Date().addingTimeInterval(600))
+        s.startSnooze(snooze)
+        #expect(s.heldLight == nil)
+        #expect(s.snooze == snooze)
+
+        s = EmberSettings(heldLight: .green)
+        s.focusChanged()
+        #expect(s.heldLight == nil)
     }
 
     @Test func guardDisabledMeansNoThreshold() {

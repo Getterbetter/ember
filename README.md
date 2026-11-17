@@ -43,7 +43,13 @@ you can find the cable in the dark.
   it's charging.
 - **Self-healing.** macOS resets the light when you plug in, sleep or wake. Ember puts it back.
 - **Safe exit.** Quit, crash or uninstall, and the light goes back to normal.
-- **Shortcuts.** Set the mode, turn the light off for a while, or wave, from Shortcuts or Siri.
+- **Shortcuts.** Four actions, so any automation can drive the light:
+  - **Set MagSafe Light**: Green, Amber, Off, or Normal. The colour stays until you change it, pick a
+    mode, snooze, or a Focus with Ember's filter starts or ends. Normal hands the light back to
+    Ember's usual rules. (The light itself only does green and amber.)
+  - **Set MagSafe Light Mode**: Auto, Always off or Always on.
+  - **Turn Off MagSafe Light For a While**: off for a number of minutes.
+  - **Wave the MagSafe Light**: blink it so you can find the cable.
 
 ## Install
 
@@ -85,6 +91,10 @@ Focus starts and ends. Nothing private is read and no Full Disk Access is needed
 Yes, as long as only one app controls the light. Ember warns you if AlDente is running. Ember never
 touches charge limits.
 
+**Can it show other colours?**
+No. The light has a green and an amber LED and nothing else, so green, amber and off are all any
+app can do. Use the Set MagSafe Light action to pick one from Shortcuts or an automation.
+
 **Intel Macs or older MagSafe?**
 No. Ember needs an Apple Silicon MacBook with MagSafe 3.
 
@@ -116,8 +126,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how the code is laid out.
 
 ## How it works
 
-- **EmberKit**: the decision logic. Precedence, highest first: low-battery guard, Always off, an
-  active snooze, Always on, then in Auto: Focus filter, schedule, normal. Pure Swift, unit tested.
+- **EmberKit**: the decision logic. Precedence, highest first: low-battery guard, a colour from
+  the Set MagSafe Light action, Always off, an active snooze, Always on, then in Auto: Focus
+  filter, schedule, normal. Pure Swift, unit tested.
 - **Ember.app**: the menu bar app, Focus filter and Shortcuts actions.
 - **EmberHelper**: the root launchd daemon (`SMAppService`) with one job.
 

@@ -4,6 +4,9 @@ import Foundation
 public struct EmberSettings: Codable, Equatable, Sendable {
     public var mode: LightMode
     public var snooze: Snooze?
+    /// A colour set by the "Set MagSafe Light" Shortcuts action. Held until the action runs
+    /// again, the mode changes, a snooze starts or a Focus filter changes its choice.
+    public var heldLight: LightTarget?
     public var schedule: LightsOutSchedule
     public var lowBatteryGuardEnabled: Bool
     public var lowBatteryThreshold: Int
@@ -14,6 +17,7 @@ public struct EmberSettings: Codable, Equatable, Sendable {
     public init(
         mode: LightMode = .auto,
         snooze: Snooze? = nil,
+        heldLight: LightTarget? = nil,
         schedule: LightsOutSchedule = LightsOutSchedule(),
         lowBatteryGuardEnabled: Bool = true,
         lowBatteryThreshold: Int = 20,
@@ -22,6 +26,7 @@ public struct EmberSettings: Codable, Equatable, Sendable {
     ) {
         self.mode = mode
         self.snooze = snooze
+        self.heldLight = heldLight
         self.schedule = schedule
         self.lowBatteryGuardEnabled = lowBatteryGuardEnabled
         self.lowBatteryThreshold = lowBatteryThreshold
@@ -35,11 +40,37 @@ public struct EmberSettings: Codable, Equatable, Sendable {
         let d = EmberSettings()
         mode = (try? c.decode(LightMode.self, forKey: .mode)) ?? d.mode
         snooze = try? c.decodeIfPresent(Snooze.self, forKey: .snooze)
+        heldLight = try? c.decodeIfPresent(LightTarget.self, forKey: .heldLight)
         schedule = (try? c.decode(LightsOutSchedule.self, forKey: .schedule)) ?? d.schedule
         lowBatteryGuardEnabled = (try? c.decode(Bool.self, forKey: .lowBatteryGuardEnabled)) ?? d.lowBatteryGuardEnabled
         lowBatteryThreshold = (try? c.decode(Int.self, forKey: .lowBatteryThreshold)) ?? d.lowBatteryThreshold
         hasFinishedWelcome = (try? c.decode(Bool.self, forKey: .hasFinishedWelcome)) ?? d.hasFinishedWelcome
         focusSetupDone = (try? c.decode(Bool.self, forKey: .focusSetupDone)) ?? d.focusSetupDone
+    }
+
+    // MARK: Instructions. The newest one wins, so each clears the ones it replaces.
+
+    /// The "Set MagSafe Light" action: hold a colour (and end any snooze), or let go with `.normal`.
+    public mutating func setShortcutLight(_ light: ShortcutLight) {
+        heldLight = light.heldTarget
+        if heldLight != nil { snooze = nil }
+    }
+
+    /// A mode picked in the menu or by the "Set MagSafe Light Mode" action.
+    public mutating func setMode(_ newMode: LightMode) {
+        mode = newMode
+        heldLight = nil
+    }
+
+    /// A snooze from the menu or the "Turn Off MagSafe Light For a While" action.
+    public mutating func startSnooze(_ newSnooze: Snooze) {
+        snooze = newSnooze
+        heldLight = nil
+    }
+
+    /// A Focus filter changed its choice: a Focus with Ember's filter started or ended.
+    public mutating func focusChanged() {
+        heldLight = nil
     }
 
     public func policyInputs(
@@ -53,6 +84,7 @@ public struct EmberSettings: Codable, Equatable, Sendable {
             mode: mode,
             focus: focus,
             snooze: snooze,
+            heldLight: heldLight,
             schedule: schedule,
             lowBatteryThreshold: lowBatteryGuardEnabled ? lowBatteryThreshold : nil,
             battery: battery,
