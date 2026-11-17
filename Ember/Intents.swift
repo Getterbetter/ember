@@ -200,10 +200,13 @@ struct EmberShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
             intent: SetMagSafeLightIntent(),
+            // Lead with Ember and avoid the word "light": Siri sends "make the light amber" to
+            // HomeKit lights before it considers an app's phrases.
             phrases: [
+                "Set \(.applicationName) to \(\.$light)",
+                "Make \(.applicationName) \(\.$light)",
+                "Turn \(.applicationName) \(\.$light)",
                 "Set the MagSafe light with \(.applicationName)",
-                "Set the MagSafe light to \(\.$light) with \(.applicationName)",
-                "Make the MagSafe light \(\.$light) with \(.applicationName)",
             ],
             shortTitle: "Set MagSafe Light",
             systemImageName: "light.beacon.max"

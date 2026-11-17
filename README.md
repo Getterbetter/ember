@@ -46,7 +46,8 @@ you can find the cable in the dark.
 - **Shortcuts and Siri.** Four actions, so any automation can drive the light:
   - **Set MagSafe Light**: Green, Amber, Off, or Normal. The colour stays until you change it, pick a
     mode, snooze, or a Focus with Ember's filter starts or ends. Normal hands the light back to
-    Ember's usual rules. (The light itself only does green and amber.)
+    Ember's usual rules. (The light itself only does green and amber.) With Siri, say "Set Ember to
+    amber": a phrase with "light" in it goes to your HomeKit lights instead.
   - **Set MagSafe Light Mode**: Auto, Always off or Always on.
   - **Turn Off MagSafe Light For a While**: off for a number of minutes.
   - **Wave the MagSafe Light**: blink it so you can find the cable.
