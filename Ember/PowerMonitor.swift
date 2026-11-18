@@ -3,6 +3,8 @@ import EmberKit
 import IOKit.ps
 
 /// Watches the battery and charger, and wake from sleep, because macOS resets the light then.
+/// Dark wakes (the short maintenance wakes during sleep) post no wake notification, but they do
+/// change the power source, so the IOKit callback covers them.
 @MainActor
 final class PowerMonitor {
     var onChange: (() -> Void)?

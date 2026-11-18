@@ -43,6 +43,7 @@ final class AppModel: ObservableObject {
     private var timer: Timer?
     private var started = false
     private var reconcileTask: Task<Void, Never>?
+    private var settleTask: Task<Void, Never>?
     private var transientTask: Task<Void, Never>?
     private var workspaceObservers: [NSObjectProtocol] = []
     private var hardwareSupported: Bool?
@@ -72,7 +73,7 @@ final class AppModel: ObservableObject {
         checkFocusFilterConfigured()
         upgradeHelperIfNeeded()
 
-        power.onChange = { [weak self] in self?.reconcileSoon(force: true) }
+        power.onChange = { [weak self] in self?.powerChanged() }
         power.start()
 
         let center = NSWorkspace.shared.notificationCenter
@@ -99,6 +100,7 @@ final class AppModel: ObservableObject {
     /// Called on quit: hand the light back to macOS.
     func releaseLight() async {
         timer?.invalidate()
+        settleTask?.cancel()
         guard needsLightRelease else { return }
         try? await helper.setLight(LightTarget.system.smcValue)
     }
@@ -106,6 +108,7 @@ final class AppModel: ObservableObject {
     /// Uninstall: give the light back and remove the root helper from launchd.
     func prepareForUninstall() async {
         timer?.invalidate()
+        settleTask?.cancel()
         if helper.state == .enabled {
             try? await helper.setLight(LightTarget.system.smcValue)
         }
@@ -262,6 +265,20 @@ final class AppModel: ObservableObject {
     }
 
     // MARK: Reconcile
+
+    /// A plug-in, unplug, wake or dark wake. Put the light back now, then look again a few times
+    /// while the SMC settles, because it can reset the light a second time (see `SettleChecks`).
+    private func powerChanged() {
+        reconcileSoon(force: true)
+        settleTask?.cancel()
+        settleTask = Task { [weak self] in
+            for gap in SettleChecks.gaps {
+                try? await Task.sleep(nanoseconds: UInt64(gap * 1_000_000_000))
+                guard !Task.isCancelled else { return }
+                self?.reconcileSoon()
+            }
+        }
+    }
 
     func reconcileSoon(force: Bool = false) {
         reconcileTask?.cancel()

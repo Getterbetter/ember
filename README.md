@@ -41,7 +41,8 @@ you can find the cable in the dark.
 - **Lights-out schedule.** Optional, for example 22:00 to 07:00.
 - **Low-battery guard.** Plugged in and under 20% (you pick)? The light stays on so you can see
   it's charging.
-- **Self-healing.** macOS resets the light when you plug in, sleep or wake. Ember puts it back.
+- **Self-healing.** macOS resets the light when you plug in or wake the Mac. Ember puts it back
+  within a second or two. (It can't while the Mac itself is asleep: see the [FAQ](#faq).)
 - **Safe exit.** Quit, crash or uninstall, and the light goes back to normal.
 - **Shortcuts.** Four actions, so any automation can drive the light:
   - **Set MagSafe Light**: Green, Amber, Off, or Normal. The colour stays until you change it, pick a
@@ -90,6 +91,14 @@ Focus starts and ends. Nothing private is read and no Full Disk Access is needed
 **Does it work with AlDente or batt?**
 Yes, as long as only one app controls the light. Ember warns you if AlDente is running. Ember never
 touches charge limits.
+
+**Why does the light come back on while my Mac is asleep?**
+A few seconds after a MacBook goes to sleep, it lowers the power it draws from the charger. The
+chip that drives the light treats that like a fresh plug-in and switches the light back on.
+Nothing runs while the Mac sleeps, not Ember and not any other app, so nothing can switch it off
+again until the Mac wakes. Ember does it as soon as the Mac is awake. If you want it dark all
+night, charge from one of the Mac's USB-C ports with an ordinary USB-C cable (no light at all), or
+put a small piece of tape over the plug.
 
 **Can it show other colours?**
 No. The light has a green and an amber LED and nothing else, so green, amber and off are all any

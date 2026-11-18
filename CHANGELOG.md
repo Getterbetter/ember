@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- After a plug-in or a wake, Ember checks the light again for about ten seconds, so it goes off
+  within a second or two. Before, a second reset from the Mac could leave it on for up to 30 seconds.
+- The FAQ explains why the light comes back on while the Mac is asleep, and why no app can stop
+  that: the Mac lowers its charger power a few seconds into sleep, which resets the light, and
+  nothing runs until it wakes.
+
 ## 1.0.2
 
 - New Shortcuts action, **Set MagSafe Light**: Green, Amber, Off or Normal, from any
