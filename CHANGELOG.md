@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.3
 
 - New, optional: **Stay awake on the charger**. A sleeping Mac turns the light back on and no app
   can stop it, so with this on, Ember keeps a plugged-in Mac awake while the light is off, even
