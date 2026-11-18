@@ -2,11 +2,17 @@ import Foundation
 import Security
 
 /// The XPC contract between Ember.app and its root helper. The helper only ever touches
-/// the MagSafe light key, and only with the values in `SMCKey.allowedLEDValues`.
+/// the MagSafe light key, and only with the values in `SMCKey.allowedLEDValues`, plus macOS's
+/// sleep switch (`pmset disablesleep`) for "Stay awake on the charger".
 @objc(EmberHelperProtocol)
 protocol EmberHelperProtocol {
     /// Writes one value to the MagSafe light. Replies 0 on success, otherwise an error code and message.
     func setLight(_ value: UInt8, withReply reply: @escaping (Int32, String?) -> Void)
+    /// "Stay awake on the charger": turns macOS sleep off (`true`) or back on (`false`). The helper
+    /// only turns sleep back on if it was the one that turned it off, and it does so by itself on
+    /// battery, when Ember.app goes away, before it exits, and when it starts after a crash.
+    /// Replies 0 on success, otherwise an error code and message.
+    func setSleepDisabled(_ disabled: Bool, withReply reply: @escaping (Int32, String?) -> Void)
     /// Reports the helper's build so the app can tell when an old helper is still registered.
     func helperVersion(withReply reply: @escaping (String) -> Void)
     /// Asks the helper to exit after replying. launchd starts the (possibly updated) binary
@@ -16,7 +22,7 @@ protocol EmberHelperProtocol {
 
 enum EmberIdentity {
     /// Bump whenever EmberHelper/ or Shared/ changes, so installed helpers get restarted.
-    static let helperVersion = "1.1.0"
+    static let helperVersion = "1.2.0"
 
     /// Bundle IDs are derived at runtime so changing the prefix in Config/Signing.xcconfig is enough.
     /// App: <prefix>.ember   Helper: <prefix>.ember.helper

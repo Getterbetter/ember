@@ -23,6 +23,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var aldenteRunning = false
     @Published private(set) var launchAtLogin = false
     @Published private(set) var isWaving = false
+    /// True while "Stay awake on the charger" has macOS sleep switched off.
+    @Published private(set) var keepingAwake = false
     @Published private(set) var lastError: String?
     /// Overrides the headline briefly after a poke or a wave.
     @Published private(set) var transientLine: String?
@@ -40,6 +42,8 @@ final class AppModel: ObservableObject {
     private let power = PowerMonitor()
     private let log = Logger(subsystem: EmberIdentity.appBundleID, category: "model")
     private var lastApplied: LightTarget?
+    /// The sleep switch the helper last confirmed (`true` = sleep off). `nil` = not known yet.
+    private var confirmedSleepDisabled: Bool?
     private var timer: Timer?
     private var started = false
     private var reconcileTask: Task<Void, Never>?
@@ -103,6 +107,8 @@ final class AppModel: ObservableObject {
         settleTask?.cancel()
         guard needsLightRelease else { return }
         try? await helper.setLight(LightTarget.system.smcValue)
+        // The helper also does this itself a few seconds after Ember goes away.
+        if confirmedSleepDisabled == true { try? await helper.setSleepDisabled(false) }
     }
 
     /// Uninstall: give the light back and remove the root helper from launchd.
@@ -111,6 +117,8 @@ final class AppModel: ObservableObject {
         settleTask?.cancel()
         if helper.state == .enabled {
             try? await helper.setLight(LightTarget.system.smcValue)
+            // Before unregistering, which stops the helper without a chance to tidy up.
+            if confirmedSleepDisabled != false { try? await helper.setSleepDisabled(false) }
         }
         try? await helper.unregister()
         uninstalled = true
@@ -132,6 +140,7 @@ final class AppModel: ObservableObject {
                 log.info("helper \(after, privacy: .public) can't restart itself; keeping it until a manual reinstall")
             }
             lastApplied = nil
+            confirmedSleepDisabled = nil
             reconcileSoon(force: true)
         }
     }
@@ -232,6 +241,7 @@ final class AppModel: ObservableObject {
                 helper.openLoginItemsSettings()
             }
             lastApplied = nil
+            confirmedSleepDisabled = nil
             reconcileSoon(force: true)
         }
     }
@@ -294,7 +304,8 @@ final class AppModel: ObservableObject {
         isReconciling = false
         helperState = helper.state
 
-        let newDecision = Policy.decide(settings.policyInputs(now: Date(), focus: focus, battery: PowerMonitor.snapshot()))
+        let battery = PowerMonitor.snapshot()
+        let newDecision = Policy.decide(settings.policyInputs(now: Date(), focus: focus, battery: battery))
         if newDecision.reason != decision.reason { bumpLine() }
         decision = newDecision
 
@@ -313,18 +324,45 @@ final class AppModel: ObservableObject {
             log.info("light drifted to \(raw, privacy: .public); re-applying \(target.rawValue, privacy: .public)")
             shouldWrite = true
         }
-        guard shouldWrite else { return }
 
+        if shouldWrite {
+            do {
+                try await helper.setLight(target.smcValue)
+                lastApplied = target
+                problem = nil
+                lastError = nil
+            } catch {
+                log.error("couldn't set light: \(String(describing: error), privacy: .public)")
+                lastApplied = nil
+                problem = .writeFailed
+                lastError = String(describing: error)
+            }
+        }
+
+        // After the light, so a slow answer here never delays it.
+        await syncStayAwake(target: target, battery: battery)
+    }
+
+    /// "Stay awake on the charger". A sleeping Mac turns the light back on and nothing can stop
+    /// that, so while the switch is on, the Mac is plugged in and the light is off, the helper
+    /// keeps macOS from sleeping. The wish is re-sent on every pass while it holds (the helper
+    /// ignores repeats), so a restarted helper picks it up again within 30 s.
+    private func syncStayAwake(target: LightTarget, battery: BatterySnapshot?) async {
+        let want = StayAwake.shouldHold(enabled: settings.staysAwakeOnCharger, target: target, battery: battery)
+        guard want || confirmedSleepDisabled != false else { return }
         do {
-            try await helper.setLight(target.smcValue)
-            lastApplied = target
-            problem = nil
-            lastError = nil
+            try await helper.setSleepDisabled(want)
+            if confirmedSleepDisabled != want {
+                let change = want ? "keeping the Mac awake: plugged in, light off" : "letting the Mac sleep"
+                log.info("\(change, privacy: .public)")
+            }
+            confirmedSleepDisabled = want
+            keepingAwake = want
         } catch {
-            log.error("couldn't set light: \(String(describing: error), privacy: .public)")
-            lastApplied = nil
-            problem = .writeFailed
-            lastError = String(describing: error)
+            log.error("sleep switch failed: \(String(describing: error), privacy: .public)")
+            confirmedSleepDisabled = nil
+            keepingAwake = false
+            if want { lastError = "Couldn't keep the Mac awake: \(error)" }
         }
     }
 

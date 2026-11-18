@@ -56,6 +56,16 @@ final class HelperClient {
     }
 
     func setLight(_ value: UInt8) async throws {
+        try await perform { helper, reply in helper.setLight(value, withReply: reply) }
+    }
+
+    /// "Stay awake on the charger": `true` stops macOS sleeping, `false` lets it sleep again.
+    func setSleepDisabled(_ disabled: Bool) async throws {
+        try await perform { helper, reply in helper.setSleepDisabled(disabled, withReply: reply) }
+    }
+
+    /// Sends one request whose reply is a status code, with a 5 s deadline.
+    private func perform(_ send: (EmberHelperProtocol, @escaping (Int32, String?) -> Void) -> Void) async throws {
         let connection = currentConnection()
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let once = ResumeOnce(continuation)
@@ -66,7 +76,7 @@ final class HelperClient {
                 once.resume(throwing: ClientError.noProxy)
                 return
             }
-            helper.setLight(value) { code, message in
+            send(helper) { code, message in
                 if code == 0 {
                     once.resume()
                 } else {

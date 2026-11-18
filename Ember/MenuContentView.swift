@@ -166,6 +166,19 @@ struct MenuContentView: View {
                 .padding(.leading, 18)
             }
 
+            Toggle("Stay awake on the charger", isOn: Binding(
+                get: { model.settings.staysAwakeOnCharger },
+                set: { model.settings.staysAwakeOnCharger = $0 }
+            ))
+            .help("A sleeping Mac turns the light back on, and no app can stop it. With this on, a plugged-in Mac with the light off doesn't sleep, even with the lid shut. The screen still turns off.")
+            if model.settings.staysAwakeOnCharger {
+                Text(stayAwakeHint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, 18)
+            }
+
             Toggle("Open at login", isOn: Binding(
                 get: { model.launchAtLogin },
                 set: { model.setLaunchAtLogin($0) }
@@ -173,6 +186,13 @@ struct MenuContentView: View {
         }
         .toggleStyle(.switch)
         .controlSize(.small)
+    }
+
+    private var stayAwakeHint: String {
+        if model.keepingAwake {
+            return "Staying up so the light stays dark. Unplug and it sleeps as normal."
+        }
+        return "Kicks in when you're plugged in and the light is off."
     }
 
     private func minutesBinding(_ keyPath: WritableKeyPath<LightsOutSchedule, Int>) -> Binding<Date> {

@@ -13,6 +13,9 @@ public struct EmberSettings: Codable, Equatable, Sendable {
     public var hasFinishedWelcome: Bool
     /// True once a Focus filter has reached Ember, or the person says they've set one up.
     public var focusSetupDone: Bool
+    /// "Stay awake on the charger": keep a plugged-in Mac from sleeping while the light is off,
+    /// because a sleeping Mac turns the light back on. Off unless the person turns it on.
+    public var staysAwakeOnCharger: Bool
 
     public init(
         mode: LightMode = .auto,
@@ -22,7 +25,8 @@ public struct EmberSettings: Codable, Equatable, Sendable {
         lowBatteryGuardEnabled: Bool = true,
         lowBatteryThreshold: Int = 20,
         hasFinishedWelcome: Bool = false,
-        focusSetupDone: Bool = false
+        focusSetupDone: Bool = false,
+        staysAwakeOnCharger: Bool = false
     ) {
         self.mode = mode
         self.snooze = snooze
@@ -32,6 +36,7 @@ public struct EmberSettings: Codable, Equatable, Sendable {
         self.lowBatteryThreshold = lowBatteryThreshold
         self.hasFinishedWelcome = hasFinishedWelcome
         self.focusSetupDone = focusSetupDone
+        self.staysAwakeOnCharger = staysAwakeOnCharger
     }
 
     // Decode field by field so adding a setting later never wipes the saved ones.
@@ -46,6 +51,7 @@ public struct EmberSettings: Codable, Equatable, Sendable {
         lowBatteryThreshold = (try? c.decode(Int.self, forKey: .lowBatteryThreshold)) ?? d.lowBatteryThreshold
         hasFinishedWelcome = (try? c.decode(Bool.self, forKey: .hasFinishedWelcome)) ?? d.hasFinishedWelcome
         focusSetupDone = (try? c.decode(Bool.self, forKey: .focusSetupDone)) ?? d.focusSetupDone
+        staysAwakeOnCharger = (try? c.decode(Bool.self, forKey: .staysAwakeOnCharger)) ?? d.staysAwakeOnCharger
     }
 
     // MARK: Instructions. The newest one wins, so each clears the ones it replaces.

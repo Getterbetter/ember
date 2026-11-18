@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- New, optional: **Stay awake on the charger**. A sleeping Mac turns the light back on and no app
+  can stop it, so with this on, Ember keeps a plugged-in Mac awake while the light is off, even
+  with the lid shut. The screen still turns off. Unplug, quit Ember, or let the light come back on,
+  and the Mac sleeps as normal again. Off unless you turn it on.
 - After a plug-in or a wake, Ember checks the light again for about ten seconds, so it goes off
   within a second or two. Before, a second reset from the Mac could leave it on for up to 30 seconds.
 - The FAQ explains why the light comes back on while the Mac is asleep, and why no app can stop
